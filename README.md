@@ -105,3 +105,8 @@ Course at https://lets-go.alexedwards.net/
 16.5. Redirect User Appropriately after Login
 16.6. Add a Debug Mode
 ```
+
+MySQL
+
+ `docker run --name mysql -e MYSQL_ROOT_PASSWORD=root -d mysql:latest`
+`mysql -u root -p`

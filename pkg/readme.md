@@ -1,0 +1,1 @@
+The pkg directory is being used to hold ancillary non-application-specific code, which could potentially be reused. A database model which could be used by other applications in the future (like a command line interface application) fits the bill here.
