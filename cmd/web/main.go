@@ -40,7 +40,7 @@ func main() {
 	if err != nil {
 		errorLog.Fatal(err)
 	}
-	// Initialize a new instance of application containing the dependencies.”
+	// Initialize a new instance of application containing the dependencies.
 	app := &application{
 		errorLog:      errorLog,
 		infoLog:       infoLog,
