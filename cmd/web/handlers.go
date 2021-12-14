@@ -6,15 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 )
 
 // Home page
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	// Avoid the default catch-all behavior of "/"
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
 
 	s, err := app.snippets.Latest()
 	if err != nil {
@@ -28,7 +25,8 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 // Shows a snippet for a given Id
 func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+	id, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	fmt.Println(id)
 	if err != nil || id < 1 {
 		app.notFound(w)
 		return
@@ -47,24 +45,48 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (app *application) createSnippetForm(w http.ResponseWriter, r *http.Request) {
+	app.render(w, r, "create.page.tmpl", nil)
+}
+
 // Create a new snippet
 func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
 
-		//w.WriteHeader(405)
-		//w.Write([]byte("Method Not Allowed"))
-		//http.Error(w, "Method Not Allowed", 405) //The http.Error Shortcut
-		app.clientError(w, http.StatusMethodNotAllowed)
+	err := r.ParseForm()
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("content-type", "application/json")
-	// Create some variables holding dummy data. We'll remove these later on
-	// during the build.
-	title := "O snail"
-	content := "O snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n– Kobayashi Issa"
-	expires := "7"
 
+	//w.Header().Set("content-type", "application/json")
+	title := r.PostForm.Get("title")
+	content := r.PostForm.Get("content")
+	expires := r.PostForm.Get("expires")
+
+	validation_errors := make(map[string]string)
+	if strings.TrimSpace(title) == "" {
+		validation_errors["title"] = "This field cannot be blank"
+	} else if utf8.RuneCountInString(title) > 100 {
+		validation_errors["title"] = "This field is too long. Max is 1000"
+	}
+
+	if strings.TrimSpace(content) == "" {
+		validation_errors["content"] = "Content cannot be empty"
+	}
+
+	if strings.TrimSpace(expires) == "" {
+		validation_errors["expires"] = "Expiration cannot be empty"
+	} else if expires != "365" && expires != "7" && expires != "1" {
+		validation_errors["expires"] = "Expiration field invalid"
+	}
+
+	// In case of errors, redisplay page
+	if len(validation_errors) > 0 {
+		app.render(w, r, "create.page.tmpl", &templateData{
+			FormErrors: validation_errors,
+			FormData:   r.PostForm,
+		})
+	}
 	// Pass the data to the SnippetModel.Insert() method, receiving the
 	// ID of the new record back.
 	id, err := app.snippets.Insert(title, content, expires)
@@ -74,5 +96,5 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Redirect the user to the relevant page for the snippet.
-	http.Redirect(w, r, fmt.Sprintf("/snippet?id=%d", id), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/snippet/%d", id), http.StatusSeeOther)
 }
