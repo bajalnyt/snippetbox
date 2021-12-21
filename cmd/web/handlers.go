@@ -83,3 +83,7 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 func (app *application) signupUserForm() {
 
 }
+
+func ping(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("OK"))
+}
